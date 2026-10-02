@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { Activity, Hospital, Brain, Map } from "lucide-react";
 
+// عدّل الإحداثيات حسب منطقتك
+const DEFAULT_LAT = 33.5138;
+const DEFAULT_LON = 36.2765;
+const DEFAULT_RADIUS = 10000;
+
 const modules = [
   { id: "risk", title: "المخاطر الصحية", icon: Activity },
   { id: "hospitals", title: "المستشفيات", icon: Hospital },
@@ -10,7 +15,12 @@ const modules = [
   { id: "map", title: "الخريطة الحية", icon: Map },
 ];
 
-type HospitalItem = { placeId: string; name: string; address: string };
+type HospitalItem = {
+  id: string;
+  name: string;
+  address?: string;
+  phone?: string;
+};
 
 export default function Home() {
   const [active, setActive] = useState<string | null>(null);
@@ -22,8 +32,9 @@ export default function Home() {
     setLoading(true);
     setError(null);
     try {
-      // استخدام إحداثيات افتراضية قريبة أو جلب موقع المستخدم
-      const res = await fetch("/api/hospitals?lat=33.5138&lng=36.2765&radius=10000");
+      const res = await fetch(
+        `/api/hospitals?lat=${DEFAULT_LAT}&lon=${DEFAULT_LON}&radius=${DEFAULT_RADIUS}`
+      );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "فشل الجلب");
       setHospitals(data.hospitals || []);
@@ -38,6 +49,8 @@ export default function Home() {
     setActive(id);
     if (id === "hospitals") loadHospitals();
   }
+
+  const activeTitle = modules.find((m) => m.id === active)?.title;
 
   return (
     <main dir="rtl" className="min-h-screen bg-slate-950 p-8 text-white">
@@ -65,28 +78,45 @@ export default function Home() {
       <section className="mx-auto mt-8 max-w-3xl">
         {active === "hospitals" && (
           <div className="rounded-2xl bg-slate-900 p-6 border border-slate-800">
-            <h2 className="text-xl font-bold mb-4 text-blue-400">المستشفيات القريبة</h2>
-            {loading && <p className="text-slate-400">جاري البحث عن المستشفيات...</p>}
+            <h2 className="text-xl font-bold mb-4 text-blue-400">
+              المستشفيات القريبة
+            </h2>
+            {loading && (
+              <p className="text-slate-400">جاري البحث عن المستشفيات...</p>
+            )}
             {error && <p className="text-red-400">{error}</p>}
             {!loading && !error && hospitals.length === 0 && (
-              <p className="text-slate-400">لا توجد مستشفيات قريبة متاحة حالياً.</p>
+              <p className="text-slate-400">
+                لا توجد مستشفيات قريبة متاحة حالياً.
+              </p>
             )}
             {!loading && !error && hospitals.length > 0 && (
               <ul className="space-y-3">
                 {hospitals.map((h) => (
-                  <li key={h.placeId} className="rounded-xl bg-slate-800 p-4 border border-slate-700/50">
+                  <li
+                    key={h.id}
+                    className="rounded-xl bg-slate-800 p-4 border border-slate-700/50"
+                  >
                     <h3 className="font-bold text-lg text-white">{h.name}</h3>
-                    <p className="text-sm text-slate-400 mt-1">{h.address}</p>
+                    {h.address && (
+                      <p className="text-sm text-slate-400 mt-1">{h.address}</p>
+                    )}
+                    {h.phone && (
+                      <p className="text-sm text-slate-500 mt-1" dir="ltr">
+                        {h.phone}
+                      </p>
+                    )}
                   </li>
                 ))}
               </ul>
             )}
           </div>
         )}
+
         {active && active !== "hospitals" && (
           <div className="rounded-2xl bg-slate-900 p-6 border border-slate-800 text-center">
             <p className="text-slate-400 text-lg">
-              قسم «{modules.modules?.find ? "" : modules.find((m) => m.id === active)?.title}» قيد التشغيل والتطوير.
+              قسم «{activeTitle}» قيد التطوير.
             </p>
           </div>
         )}
