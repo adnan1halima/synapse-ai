@@ -1,10 +1,10 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
-  "/dashboard/page": "app/dashboard/page.js",
-  "/api/doctor-ai/route": "app/api/doctor-ai/route.js",
-  "/doctors/page": "app/doctors/page.js",
-  "/twin/page": "app/twin/page.js",
   "/insurance/page": "app/insurance/page.js",
+  "/api/doctor-ai/route": "app/api/doctor-ai/route.js",
+  "/twin/page": "app/twin/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/doctors/page": "app/doctors/page.js",
   "/api/hospitals/route": "app/api/hospitals/route.js",
   "/page": "app/page.js"
 }
