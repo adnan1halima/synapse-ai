@@ -1,29 +1,31 @@
 export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+export const revalidate = 0;
+
 import { NextResponse } from 'next/server';
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const lat = searchParams.get('lat');
-  const lng = searchParams.get('lng');
-
-  if (!lat || !lng) {
-    return NextResponse.json({ error: 'الإحداثيات غير متوفرة' }, { status: 400 });
-  }
-
-  const radius = 10000;
-  const overpassQuery = `
-    [out:json];
-    node["amenity"="hospital"](around:${radius},${lat},${lng});
-    out body 10;
-  `;
-
-  const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`;
-
-  // استخدام AbortController لمنع تعليق الطلب لأكثر من 6 ثوانٍ
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 6000);
-
   try {
+    const { searchParams } = new URL(req.url);
+    const lat = searchParams.get('lat');
+    const lng = searchParams.get('lng');
+
+    if (!lat || !lng) {
+      return NextResponse.json({ error: 'الإحداثيات غير متوفرة' }, { status: 400 });
+    }
+
+    const radius = 10000;
+    const overpassQuery = `
+      [out:json];
+      node["amenity"="hospital"](around:${radius},${lat},${lng});
+      out body 10;
+    `;
+
+    const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+
     const response = await fetch(url, { signal: controller.signal });
     clearTimeout(timeoutId);
 
@@ -44,8 +46,6 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ hospitals });
   } catch (error) {
-    clearTimeout(timeoutId);
-    // إرجاع مصفوفة فارغة بدلاً من انهيار السيرفر بالكامل في حال حدوث تايم آوت
     return NextResponse.json({ hospitals: [], warning: 'تعذر جلب المستشفيات حالياً' });
   }
 }
