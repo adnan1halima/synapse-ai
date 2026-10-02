@@ -1,17 +1,17 @@
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-export const revalidate = 0;
 
 import { NextResponse } from 'next/server';
 
 export async function GET(req: Request) {
   try {
-    const { searchParams } = new URL(req.url);
-    const lat = searchParams.get('lat');
-    const lng = searchParams.get('lng');
+    // استخراج الإحصائيات بطريقة آمنة لا تكسر البناء أبداً
+    const urlObj = new URL(req.url, 'http://localhost');
+    const lat = urlObj.searchParams.get('lat');
+    const lng = urlObj.searchParams.get('lng');
 
     if (!lat || !lng) {
-      return NextResponse.json({ error: 'الإحداثيات غير متوفرة' }, { status: 400 });
+      return NextResponse.json({ hospitals: [], error: 'الإحداثيات غير متوفرة' }, { status: 400 });
     }
 
     const radius = 10000;
@@ -21,16 +21,14 @@ export async function GET(req: Request) {
       out body 10;
     `;
 
-    const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`;
+    const externalUrl = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`;
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
-
-    const response = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeoutId);
+    const response = await fetch(externalUrl, {
+      headers: { 'User-Agent': 'MedicalTriageApp/1.0' }
+    });
 
     if (!response.ok) {
-      throw new Error('فشل الاستجابة من الخادم الخارجي');
+      return NextResponse.json({ hospitals: [] });
     }
 
     const data = await response.json();
@@ -45,7 +43,7 @@ export async function GET(req: Request) {
     }));
 
     return NextResponse.json({ hospitals });
-  } catch (error) {
-    return NextResponse.json({ hospitals: [], warning: 'تعذر جلب المستشفيات حالياً' });
+  } catch (err) {
+    return NextResponse.json({ hospitals: [] });
   }
 }
