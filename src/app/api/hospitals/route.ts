@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 
 export async function GET(req: Request) {
@@ -9,7 +10,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'الإحداثيات غير متوفرة' }, { status: 400 });
   }
 
-  // استخدام Overpass API للبحث عن المستشفيات في نطاق 10 كيلومترات حول الإحداثيات
   const radius = 10000;
   const overpassQuery = `
     [out:json];
@@ -19,8 +19,18 @@ export async function GET(req: Request) {
 
   const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(overpassQuery)}`;
 
+  // استخدام AbortController لمنع تعليق الطلب لأكثر من 6 ثوانٍ
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 6000);
+
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error('فشل الاستجابة من الخادم الخارجي');
+    }
+
     const data = await response.json();
     
     const hospitals = (data.elements || []).map((place: any) => ({
@@ -34,6 +44,8 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ hospitals });
   } catch (error) {
-    return NextResponse.json({ error: 'فشل في جلب المستشفيات' }, { status: 500 });
+    clearTimeout(timeoutId);
+    // إرجاع مصفوفة فارغة بدلاً من انهيار السيرفر بالكامل في حال حدوث تايم آوت
+    return NextResponse.json({ hospitals: [], warning: 'تعذر جلب المستشفيات حالياً' });
   }
 }
