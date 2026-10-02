@@ -14,13 +14,12 @@
       "static/chunks/main-app-b2c4cf86703444f5.js",
       "static/chunks/app/layout-cbd3ebdc4ecc5247.js"
     ],
-    "/page": [
+    "/doctors/page": [
       "static/chunks/webpack-e17383529fe6c8b6.js",
       "static/chunks/fd9d1056-7af6a7ccbdd77626.js",
       "static/chunks/117-06cbcc456e0ad662.js",
       "static/chunks/main-app-b2c4cf86703444f5.js",
-      "static/chunks/972-4e87bf428a06e5ca.js",
-      "static/chunks/app/page-101851ca2b935260.js"
+      "static/chunks/app/doctors/page-9d6c5c1545b42539.js"
     ],
     "/dashboard/page": [
       "static/chunks/webpack-e17383529fe6c8b6.js",
@@ -29,16 +28,15 @@
       "static/chunks/main-app-b2c4cf86703444f5.js",
       "static/chunks/44530001-3bf1abf623554b3e.js",
       "static/chunks/369-565727b08ed06358.js",
-      "static/chunks/app/dashboard/page-78b5dd9202a4e140.js"
+      "static/chunks/app/dashboard/page-f685f8a437adf0d3.js"
     ],
-    "/twin/page": [
+    "/page": [
       "static/chunks/webpack-e17383529fe6c8b6.js",
       "static/chunks/fd9d1056-7af6a7ccbdd77626.js",
       "static/chunks/117-06cbcc456e0ad662.js",
       "static/chunks/main-app-b2c4cf86703444f5.js",
       "static/chunks/972-4e87bf428a06e5ca.js",
-      "static/chunks/899-46d4919a2f07f2af.js",
-      "static/chunks/app/twin/page-30f08cffcbd6b12e.js"
+      "static/chunks/app/page-101851ca2b935260.js"
     ],
     "/insurance/page": [
       "static/chunks/webpack-e17383529fe6c8b6.js",
@@ -48,12 +46,14 @@
       "static/chunks/972-4e87bf428a06e5ca.js",
       "static/chunks/app/insurance/page-1e846d8b9619f7c0.js"
     ],
-    "/doctors/page": [
+    "/twin/page": [
       "static/chunks/webpack-e17383529fe6c8b6.js",
       "static/chunks/fd9d1056-7af6a7ccbdd77626.js",
       "static/chunks/117-06cbcc456e0ad662.js",
       "static/chunks/main-app-b2c4cf86703444f5.js",
-      "static/chunks/app/doctors/page-9d6c5c1545b42539.js"
+      "static/chunks/972-4e87bf428a06e5ca.js",
+      "static/chunks/899-46d4919a2f07f2af.js",
+      "static/chunks/app/twin/page-30f08cffcbd6b12e.js"
     ]
   }
 }

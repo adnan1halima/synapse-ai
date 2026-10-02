@@ -48,51 +48,36 @@ export default function DashboardPage() {
         return;
       }
 
-      const query = `
-        [out:json][timeout:25];
-        (
-          node["amenity"="hospital"](around:40000, ${lat}, ${lng});
-          way["amenity"="hospital"](around:40000, ${lat}, ${lng});
-        );
-        out center;
-      `;
-
-      const response = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
-      if (!response.ok) throw new Error('فشل في جلب البيانات الجغرافية');
-      
+            const response = await fetch(
+        `/api/hospitals?lat=${lat}&lon=${lng}&radius=40000`
+      );
       const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || 'فشل في جلب البيانات الجغرافية');
+      }
 
-      const filteredHospitals: Hospital[] = result.elements
-        .filter((item: any) => {
-          const tags = item.tags || {};
-          const name = tags.name || tags['name:ar'] || tags['name:en'];
-          if (!name) return false;
-          const lowerName = name.toLowerCase();
+      const filteredHospitals: Hospital[] = (result.hospitals as any[])
+        .filter((item) => {
+          const lowerName = (item.name || '').toLowerCase();
           return !(
-            lowerName.includes('صيدلية') || 
-            lowerName.includes('pharmacy') || 
-            lowerName.includes('بيطري') || 
+            lowerName.includes('صيدلية') ||
+            lowerName.includes('pharmacy') ||
+            lowerName.includes('بيطري') ||
             lowerName.includes('أسنان')
           );
         })
-        .map((item: any) => {
-          const hLat = item.lat || (item.center && item.center.lat);
-          const hLng = item.lon || (item.center && item.center.lon);
-          const tags = item.tags || {};
-          return {
-            id: item.id.toString(),
-            name: tags.name || tags['name:ar'] || tags['name:en'],
-            address: tags['addr:street'] || tags['addr:city'] || tags['addr:district'] || 'المستشفى المركزي / المركز الطبي',
-            latitude: hLat,
-            longitude: hLng,
-            distance_in_km: calculateHaversineDistance(lat, lng, hLat, hLng)
-          };
-        })
-        .filter((h: Hospital) => h.latitude && h.longitude)
-        .sort((a: Hospital, b: Hospital) => a.distance_in_km - b.distance_in_km);
+        .map((item) => ({
+          id: item.id,
+          name: item.name,
+          address: item.address || 'المستشفى المركزي / المركز الطبي',
+          latitude: item.lat,
+          longitude: item.lon,
+          distance_in_km: calculateHaversineDistance(lat, lng, item.lat, item.lon),
+        }))
+        .sort((a, b) => a.distance_in_km - b.distance_in_km);
 
       const uniqueHospitals = Array.from(
-        new Map(filteredHospitals.map(item => [item.name, item])).values()
+        new Map(filteredHospitals.map((item) => [item.name, item])).values()
       ).slice(0, 10);
 
       setHospitals(uniqueHospitals);

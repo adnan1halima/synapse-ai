@@ -10,7 +10,7 @@ const findNearbyHospitals = () => {
       const lng = position.coords.longitude;
 
       // استدعاء مسار الـ API
-      const res = await fetch(`/api/hospitals?lat=${lat}&lng=${lng}`);
+      const res = await fetch(`/api/hospitals?lat=${lat}&lon=${lng}`);
       const data = await res.json();
 
       console.log('أقرب المستشفيات الحقيقية:', data.hospitals);
