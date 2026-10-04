@@ -1,7 +1,10 @@
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 30;
 
+const CF_ACCOUNT = process.env.CF_ACCOUNT_ID;
+const CF_TOKEN = process.env.CF_API_TOKEN;
+const CF_MODEL = process.env.CF_MODEL ?? "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const OLLAMA_BASE = process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434";
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL ?? "qwen2.5:7b";
 
@@ -14,16 +17,17 @@ const SYSTEM =
 
 type Msg = { role: string; content: string };
 
+function cleanText(text: string) {
+  return text.replace(/[\u3000-\u9FFF\uAC00-\uD7AF\uFF00-\uFFEF]/g, "");
+}
+
 export async function POST(req: Request) {
   let messages: Msg[] = [];
   try {
     const body = await req.json();
     if (Array.isArray(body.messages)) {
       messages = body.messages
-        .filter(
-          (m: Msg) =>
-            m && m.content && ["user", "assistant"].includes(m.role)
-        )
+        .filter((m: Msg) => m && m.content && ["user", "assistant"].includes(m.role))
         .slice(-6);
     } else if (body.prompt) {
       messages = [{ role: "user", content: String(body.prompt) }];
@@ -35,31 +39,49 @@ export async function POST(req: Request) {
     return new Response("السؤال مطلوب", { status: 400 });
   }
 
+  const useCloud = Boolean(CF_ACCOUNT) && Boolean(CF_TOKEN);
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 55000);
+  const timer = setTimeout(() => controller.abort(), 28000);
+  const full = [{ role: "system", content: SYSTEM }, ...messages];
 
   try {
-    const upstream = await fetch(OLLAMA_BASE + "/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: OLLAMA_MODEL,
-        messages: [{ role: "system", content: SYSTEM }, ...messages],
-        stream: true,
-        keep_alive: "60m",
-        options: {
-          num_predict: 160,
-          temperature: 0.15,
-          top_p: 0.8,
-          repeat_penalty: 1.1,
-          num_ctx: 2048,
-        },
-      }),
-      signal: controller.signal,
-    });
+    const upstream = useCloud
+      ? await fetch(
+          "https://api.cloudflare.com/client/v4/accounts/" +
+            CF_ACCOUNT +
+            "/ai/run/" +
+            CF_MODEL,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: "Bearer " + CF_TOKEN,
+            },
+            body: JSON.stringify({
+              messages: full,
+              stream: true,
+              max_tokens: 400,
+              temperature: 0.2,
+            }),
+            signal: controller.signal,
+          }
+        )
+      : await fetch(OLLAMA_BASE + "/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: OLLAMA_MODEL,
+            messages: full,
+            stream: true,
+            keep_alive: "60m",
+            options: { num_predict: 160, temperature: 0.15, num_ctx: 2048 },
+          }),
+          signal: controller.signal,
+        });
 
     if (!upstream.ok || !upstream.body) {
-      throw new Error("Ollama responded " + upstream.status);
+      const detail = await upstream.text().catch(() => "");
+      throw new Error("AI provider " + upstream.status + " " + detail.slice(0, 200));
     }
 
     const reader = upstream.body.getReader();
@@ -78,13 +100,21 @@ export async function POST(req: Request) {
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n");
         buffer = lines.pop() ?? "";
-        for (const line of lines) {
-          if (!line.trim()) continue;
+        for (const raw of lines) {
+          const line = raw.trim();
+          if (!line) continue;
           try {
-            const text = JSON.parse(line).message?.content;
-            const clean = text
-              ? text.replace(/[\u3000-\u9FFF\uAC00-\uD7AF\uFF00-\uFFEF]/g, "")
-              : "";
+            let text: string | undefined;
+            if (useCloud) {
+              if (!line.startsWith("data:")) continue;
+              const payload = line.slice(5).trim();
+              if (payload === "[DONE]") continue;
+              const j = JSON.parse(payload);
+              text = j.response ?? j.choices?.[0]?.delta?.content;
+            } else {
+              text = JSON.parse(line).message?.content;
+            }
+            const clean = text ? cleanText(text) : "";
             if (clean) ctrl.enqueue(encoder.encode(clean));
           } catch {
             // سطر غير مكتمل
@@ -105,8 +135,6 @@ export async function POST(req: Request) {
   } catch (err) {
     clearTimeout(timer);
     console.error("[api/doctor-ai]", err);
-    return new Response("تعذر الاتصال بالذكاء الاصطناعي المحلي.", {
-      status: 502,
-    });
+    return new Response("تعذر الاتصال بخدمة الذكاء الاصطناعي.", { status: 502 });
   }
 }
