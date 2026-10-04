@@ -49,7 +49,7 @@ export default function DashboardPage() {
       }
 
             const response = await fetch(
-        `/api/hospitals?lat=${lat}&lon=${lng}&radius=40000`
+        `/api/hospitals?lat=${lat}&lon=${lng}&radius=10000`
       );
       const result = await response.json();
       if (!response.ok) {
